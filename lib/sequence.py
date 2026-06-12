@@ -80,8 +80,11 @@ def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str]:
 
 
 def _clips_uniform(segment_paths: list[str]) -> bool:
-    """True when every clip shares the first clip's size and frame rate."""
-    params = [probe_video_params(path) for path in segment_paths]
+    """True when every clip shares the first clip's size, frame rate, and
+    audio presence (mixed audio breaks stream-copy concat)."""
+    params = [
+        (*probe_video_params(path), probe_has_audio(path)) for path in segment_paths
+    ]
     return all(p == params[0] for p in params[1:])
 
 
@@ -172,9 +175,10 @@ def sequence_videos_fade(
 
     ffmpeg = require_ffmpeg()
     durations = [probe_duration(path) for path in segment_paths]
-    # Audio crossfade only works when every segment has an audio stream;
-    # otherwise produce a video-only output instead of failing in FFmpeg.
-    with_audio = all(probe_has_audio(path) for path in segment_paths)
+    # Keep audio when any clip has it, laying silence under silent clips —
+    # like an editing timeline. Video-only output only when no clip has audio.
+    clip_has_audio = [probe_has_audio(path) for path in segment_paths]
+    with_audio = any(clip_has_audio)
 
     # Conform every clip to the first clip's size and frame rate (scale +
     # letterbox), like dropping clips into an editing timeline. xfade and
@@ -187,6 +191,25 @@ def sequence_videos_fade(
     cmd = [ffmpeg, "-y"]
     for path in segment_paths:
         cmd += ["-i", path]
+
+    # Silent clips borrow audio from generated silence inputs appended
+    # after the real clips.
+    audio_input: list[int] = []
+    next_input = len(segment_paths)
+    for index, has in enumerate(clip_has_audio):
+        if with_audio and not has:
+            cmd += [
+                "-f",
+                "lavfi",
+                "-t",
+                f"{durations[index]:.3f}",
+                "-i",
+                "anullsrc=r=44100:cl=stereo",
+            ]
+            audio_input.append(next_input)
+            next_input += 1
+        else:
+            audio_input.append(index)
 
     video_filters: list[str] = []
     audio_filters: list[str] = []
@@ -201,7 +224,7 @@ def sequence_videos_fade(
         )
         if with_audio:
             audio_filters.append(
-                f"[{index}:a]"
+                f"[{audio_input[index]}:a]"
                 "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
                 f"[ca{index:02d}]"
             )

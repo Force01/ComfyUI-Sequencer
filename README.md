@@ -86,7 +86,8 @@ sequencer stream-copies instead: instant and lossless.
   size, frame rate, and codec settings; otherwise the sequence is conformed
   and re-encoded automatically.
 - Transitions re-encode; output duration shrinks by the overlap of each crossfade.
-- Clips without audio produce a video-only result in transition modes.
+- When some clips have audio and others don't, silence is laid under the
+  silent clips (video-only output only when no clip has audio).
 
 ## Support scope
 
