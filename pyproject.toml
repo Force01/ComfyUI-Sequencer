@@ -1,8 +1,9 @@
 [project]
 name = "ComfyUI-Sequencer"
 version = "1.0.0"
-description = "Video Sequencer for ComfyUI — join MP4 clips end-to-end with cuts or dissolves (FFmpeg)."
+description = "Video Sequencer for ComfyUI — join video clips end-to-end with cuts or dissolves (FFmpeg)."
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
 
 [tool.comfy]
 PublisherId = "fundy"

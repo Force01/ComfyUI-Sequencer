@@ -11,7 +11,7 @@ from comfy_api.latest import ComfyExtension, InputImpl, io, ui
 
 from ..lib.paths import ordered_segment_paths
 from ..lib.sequence import require_ffmpeg, sequence_videos
-from ..lib.transitions import parse_transitions
+from ..lib.transitions import build_transitions
 
 _MAX_SEGMENTS = 20
 
@@ -30,16 +30,8 @@ def _resolve_transitions(
     dissolve_duration: float,
 ) -> list[dict]:
     gap_count = max(0, segment_count - 1)
-    if gap_count == 0:
-        return []
-
-    default_gap = "cut" if join_mode == "stream_copy" else "dissolve"
-    return parse_transitions(
-        "",
-        gap_count,
-        default_dissolve_duration=dissolve_duration,
-        default_gap=default_gap,
-    )
+    kind = "cut" if join_mode == "stream_copy" else "dissolve"
+    return build_transitions(gap_count, kind, dissolve_duration)
 
 
 class VideoSequencer(io.ComfyNode):
