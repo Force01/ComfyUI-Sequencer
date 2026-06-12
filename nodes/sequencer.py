@@ -11,27 +11,9 @@ from comfy_api.latest import ComfyExtension, InputImpl, io, ui
 
 from ..lib.paths import ordered_segment_paths
 from ..lib.sequence import require_ffmpeg, sequence_videos
-from ..lib.transitions import build_transitions
+from ..lib.transitions import TRANSITION_NAMES, build_transitions
 
 _MAX_SEGMENTS = 20
-
-# UI label -> lib join_mode (legacy values pass through for old workflows/API calls)
-_JOIN_MODES = {
-    "cut": "stream_copy",
-    "dissolve": "fade",
-    "stream_copy": "stream_copy",
-    "fade": "fade",
-}
-
-
-def _resolve_transitions(
-    join_mode: str,
-    segment_count: int,
-    dissolve_duration: float,
-) -> list[dict]:
-    gap_count = max(0, segment_count - 1)
-    kind = "cut" if join_mode == "stream_copy" else "dissolve"
-    return build_transitions(gap_count, kind, dissolve_duration)
 
 
 class VideoSequencer(io.ComfyNode):
@@ -60,8 +42,9 @@ class VideoSequencer(io.ComfyNode):
                 "Join video clips end-to-end into one continuous video, in slot "
                 "order. Accepts any VIDEO output — loaded files or clips "
                 "generated earlier in the workflow. A new segment slot appears "
-                "whenever you connect a clip (up to 20). 'cut' joins instantly "
-                "with no re-encode; 'dissolve' crossfades between clips."
+                "whenever you connect a clip (up to 20). Pick a transition for "
+                "the junctions: 'cut' joins instantly with no re-encode; "
+                "dissolves, fades, wipes, and slides re-encode."
             ),
             search_aliases=[
                 "sequence",
@@ -87,11 +70,15 @@ class VideoSequencer(io.ComfyNode):
                 ),
                 io.Combo.Input(
                     "join_mode",
-                    options=["cut", "dissolve"],
+                    display_name="transition",
+                    options=TRANSITION_NAMES,
                     default="cut",
                     tooltip=(
+                        "Transition used at every junction between clips. "
                         "cut: hard cuts, instant and lossless (no re-encode). "
-                        "dissolve: crossfade between clips (re-encodes to H.264)."
+                        "All others re-encode to H.264. For different "
+                        "transitions at different junctions, chain Video "
+                        "Sequencer nodes."
                     ),
                 ),
                 io.Float.Input(
@@ -100,8 +87,8 @@ class VideoSequencer(io.ComfyNode):
                     min=0.1,
                     max=10.0,
                     step=0.05,
-                    display_name="dissolve seconds",
-                    tooltip="How long each dissolve lasts, in seconds.",
+                    display_name="transition seconds",
+                    tooltip="How long each transition lasts, in seconds (ignored for cut).",
                 ),
                 io.String.Input(
                     "filename_prefix",
@@ -125,15 +112,13 @@ class VideoSequencer(io.ComfyNode):
         filename_prefix: str,
     ) -> io.NodeOutput:
         require_ffmpeg()
-        if join_mode not in _JOIN_MODES:
-            raise ValueError(f"Unknown join_mode: {join_mode!r}")
-        join_mode = _JOIN_MODES[join_mode]
         resolved = ordered_segment_paths(segments)
-        transition_specs = _resolve_transitions(
+        transition_specs = build_transitions(
+            max(0, len(resolved) - 1),
             join_mode,
-            len(resolved),
             dissolve_duration,
         )
+        join_mode = "stream_copy" if join_mode == "cut" else "fade"
 
         full_output_folder, filename, counter, subfolder, _prefix = folder_paths.get_save_image_path(
             filename_prefix,

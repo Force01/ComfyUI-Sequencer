@@ -6,12 +6,32 @@ loaded MP4 files or clips generated earlier in the same workflow.
 Connect clips in playback order — a new segment slot appears each time you
 connect one (up to 20). Pick how the clips join and queue the workflow.
 
-## Join modes
+## Transitions
+
+The **transition** dropdown applies one transition style at every junction:
 
 - **cut** — hard cuts. FFmpeg concat demuxer, no re-encode — instant and
   lossless. Clips must share codec/container settings.
-- **dissolve** — crossfade between clips, lasting **dissolve seconds**.
-  Re-encodes to H.264 (audio crossfades to AAC when every clip has audio).
+- **dissolve** — classic crossfade between clips.
+- **fade to black** / **fade to white** — fade out through black/white, then in.
+- **wipe left / right / up / down** — the next clip wipes across the frame.
+- **slide left / right / up / down** — the next clip pushes the previous one out.
+- **circle open** / **circle close** — iris in or out.
+- **pixelate** — pixelated dissolve.
+
+Everything except **cut** re-encodes to H.264 and lasts **transition seconds**
+(audio crossfades to AAC when every clip has audio).
+
+### Mixing transitions
+
+Chain sequencers: the node's output is a VIDEO, so wire one sequencer's result
+into another's `segment0`. Example — dissolve A→B, hard cut to C:
+
+```text
+A ──► segment0 ─┐
+B ──► segment1 ─┴─► Sequencer (dissolve) ──► segment0 ─┐
+C ─────────────────────────────────────────► segment1 ─┴─► Sequencer (cut) ──► video
+```
 
 ## Requirements
 

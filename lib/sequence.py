@@ -158,11 +158,12 @@ def sequence_videos_fade(
     audio_filters: list[str] = []
 
     for index, transition in enumerate(transitions):
-        if transition["type"] == "dissolve":
-            trans_dur = max(0.1, float(transition["duration"]))
-        else:
+        if transition["type"] == "cut":
             trans_dur = float(transition["duration"])
+        else:
+            trans_dur = max(0.1, float(transition["duration"]))
 
+        xfade_name = transition.get("xfade", "fade")
         offset = max(0.0, cumulative - trans_dur)
         next_idx = index + 1
         v_out = f"v{next_idx:02d}"
@@ -170,7 +171,7 @@ def sequence_videos_fade(
 
         video_filters.append(
             f"[{v_label}][{next_idx}:v]"
-            f"xfade=transition=fade:duration={trans_dur:.3f}:offset={offset:.3f}"
+            f"xfade=transition={xfade_name}:duration={trans_dur:.3f}:offset={offset:.3f}"
             f"[{v_out}]"
         )
         if with_audio:
