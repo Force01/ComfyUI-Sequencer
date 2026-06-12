@@ -1,6 +1,7 @@
 # ComfyUI-Sequencer
 
-**Video Sequencer** joins MP4 clips end-to-end into one continuous video.
+**Video Sequencer** joins video clips end-to-end into one continuous video —
+loaded MP4 files or clips generated earlier in the same workflow.
 
 Connect clips in playback order — a new segment slot appears each time you
 connect one (up to 20). Pick how the clips join and queue the workflow.

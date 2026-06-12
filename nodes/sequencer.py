@@ -65,10 +65,11 @@ class VideoSequencer(io.ComfyNode):
             display_name="Video Sequencer",
             category="video",
             description=(
-                "Join MP4 clips end-to-end into one continuous video, in slot "
-                "order. A new segment slot appears whenever you connect a clip "
-                "(up to 20). cut joins instantly with no re-encode; dissolve "
-                "crossfades between clips."
+                "Join video clips end-to-end into one continuous video, in slot "
+                "order. Accepts any VIDEO output — loaded files or clips "
+                "generated earlier in the workflow. A new segment slot appears "
+                "whenever you connect a clip (up to 20). 'cut' joins instantly "
+                "with no re-encode; 'dissolve' crossfades between clips."
             ),
             search_aliases=[
                 "sequence",
