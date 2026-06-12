@@ -73,13 +73,20 @@ the sequencer — ComfyUI runs the sequencer only after every connected clip has
 finished rendering. In-memory clips are encoded once to a temp H.264 MP4 before
 joining.
 
+## Mixed resolutions and frame rates
+
+Clips are conformed to the **first clip's** size and frame rate, like dropping
+clips into an editing timeline — smaller or differently-shaped clips are scaled
+and letterboxed. When clips already match (and **cut** is selected), the
+sequencer stream-copies instead: instant and lossless.
+
 ## Limitations
 
-- **cut** mode is lossless only for file-backed MP4 clips with compatible
-  codec/container settings; in-memory or non-MP4 clips are re-encoded to
-  temp files first.
-- **dissolve** re-encodes; output duration shrinks by the overlap of each crossfade.
-- Clips without audio produce a video-only result in dissolve mode.
+- **cut** mode is lossless only when all clips are file-backed MP4s sharing
+  size, frame rate, and codec settings; otherwise the sequence is conformed
+  and re-encoded automatically.
+- Transitions re-encode; output duration shrinks by the overlap of each crossfade.
+- Clips without audio produce a video-only result in transition modes.
 
 ## Support scope
 

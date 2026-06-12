@@ -53,6 +53,38 @@ def probe_has_audio(path: str, *, timeout: int = 30) -> bool:
     return result.returncode == 0 and bool(result.stdout.strip())
 
 
+def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str]:
+    """Return (width, height, avg_frame_rate) of the first video stream."""
+    ffprobe = require_ffprobe()
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height,avg_frame_rate",
+            "-of",
+            "csv=p=0",
+            path,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        raise RuntimeError(f"Cannot read video parameters for {path!r}")
+    width, height, frame_rate = result.stdout.strip().split(",")[:3]
+    return int(width), int(height), frame_rate
+
+
+def _clips_uniform(segment_paths: list[str]) -> bool:
+    """True when every clip shares the first clip's size and frame rate."""
+    params = [probe_video_params(path) for path in segment_paths]
+    return all(p == params[0] for p in params[1:])
+
+
 def probe_duration(path: str, *, timeout: int = 30) -> float:
     ffprobe = require_ffprobe()
     result = subprocess.run(
@@ -144,6 +176,11 @@ def sequence_videos_fade(
     # otherwise produce a video-only output instead of failing in FFmpeg.
     with_audio = all(probe_has_audio(path) for path in segment_paths)
 
+    # Conform every clip to the first clip's size and frame rate (scale +
+    # letterbox), like dropping clips into an editing timeline. xfade and
+    # concat require identical geometry across inputs.
+    width, height, frame_rate = probe_video_params(segment_paths[0])
+
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -151,11 +188,27 @@ def sequence_videos_fade(
     for path in segment_paths:
         cmd += ["-i", path]
 
-    v_label = "0:v"
-    a_label = "0:a"
-    cumulative = durations[0]
     video_filters: list[str] = []
     audio_filters: list[str] = []
+
+    for index in range(len(segment_paths)):
+        video_filters.append(
+            f"[{index}:v]"
+            f"scale={width}:{height}:force_original_aspect_ratio=decrease,"
+            f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,"
+            f"setsar=1,fps={frame_rate}"
+            f"[cv{index:02d}]"
+        )
+        if with_audio:
+            audio_filters.append(
+                f"[{index}:a]"
+                "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
+                f"[ca{index:02d}]"
+            )
+
+    v_label = "cv00"
+    a_label = "ca00"
+    cumulative = durations[0]
 
     for index, transition in enumerate(transitions):
         if transition["type"] == "cut":
@@ -170,13 +223,13 @@ def sequence_videos_fade(
         a_out = f"a{next_idx:02d}"
 
         video_filters.append(
-            f"[{v_label}][{next_idx}:v]"
+            f"[{v_label}][cv{next_idx:02d}]"
             f"xfade=transition={xfade_name}:duration={trans_dur:.3f}:offset={offset:.3f}"
             f"[{v_out}]"
         )
         if with_audio:
             audio_filters.append(
-                f"[{a_label}][{next_idx}:a]acrossfade=d={trans_dur:.3f}[{a_out}]"
+                f"[{a_label}][ca{next_idx:02d}]acrossfade=d={trans_dur:.3f}[{a_out}]"
             )
 
         v_label = v_out
@@ -226,12 +279,16 @@ def sequence_videos(
     timeout: int = 600,
 ) -> str:
     """Dispatch to stream-copy or crossfade sequencing."""
-    if join_mode == "stream_copy":
+    if join_mode not in ("stream_copy", "fade"):
+        raise ValueError(f"Unknown join_mode: {join_mode!r}")
+
+    all_cuts = join_mode == "stream_copy" or uses_stream_copy(transitions)
+    if all_cuts and len(segment_paths) > 1 and not _clips_uniform(segment_paths):
+        # Mismatched size/frame rate: the concat demuxer would corrupt the
+        # output, so conform + re-encode via the xfade path (cut transitions
+        # there are 0.04 s, visually a hard cut).
+        all_cuts = False
+
+    if all_cuts:
         return sequence_videos_cut(segment_paths, output_path, timeout=min(timeout, 300))
-
-    if join_mode == "fade":
-        if uses_stream_copy(transitions):
-            return sequence_videos_cut(segment_paths, output_path, timeout=min(timeout, 300))
-        return sequence_videos_fade(segment_paths, transitions, output_path, timeout=timeout)
-
-    raise ValueError(f"Unknown join_mode: {join_mode!r}")
+    return sequence_videos_fade(segment_paths, transitions, output_path, timeout=timeout)
