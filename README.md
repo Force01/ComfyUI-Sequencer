@@ -1,10 +1,13 @@
 # ComfyUI-Sequencer
 
 **Video Sequencer** joins video clips end-to-end into one continuous video —
-loaded MP4 files or clips generated earlier in the same workflow.
+**instantly, losslessly, and with zero VRAM** in cut mode. Clips come from
+loaded MP4 files or straight from video models earlier in the same workflow;
+clips never need to fit in memory.
 
 Connect clips in playback order — a new segment slot appears each time you
-connect one (up to 20). Pick how the clips join and queue the workflow.
+connect one (up to 20). Pick a transition for the junctions and queue the
+workflow. Find it under **video/edit**.
 
 ## Transitions
 
@@ -46,7 +49,7 @@ Copy or clone this folder into your ComfyUI `custom_nodes` directory:
 custom_nodes/ComfyUI-Sequencer/
 ```
 
-Restart ComfyUI. The node appears under **video** as **Video Sequencer**.
+Restart ComfyUI. The node appears under **video/edit** as **Video Sequencer**.
 
 ## Use
 

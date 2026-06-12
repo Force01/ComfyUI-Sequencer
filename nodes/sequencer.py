@@ -37,7 +37,7 @@ class VideoSequencer(io.ComfyNode):
         return io.Schema(
             node_id="VideoSequencer",
             display_name="Video Sequencer",
-            category="video",
+            category="video/edit",
             description=(
                 "Join video clips end-to-end into one continuous video, in slot "
                 "order. Accepts any VIDEO output — loaded files or clips "
