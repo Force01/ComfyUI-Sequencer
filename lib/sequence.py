@@ -195,6 +195,12 @@ def sequence_videos_fade(
     cmd += [
         "-c:v",
         "libx264",
+        # 4:2:0 + faststart for broad player compatibility (Windows, web, mobile);
+        # without this libx264 can emit High 4:4:4, which many decoders reject
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
         "-crf",
         "18",
         "-preset",
