@@ -51,7 +51,10 @@ class VideoSequencer(io.ComfyNode):
         segments_template = io.Autogrow.TemplatePrefix(
             io.Video.Input(
                 "segment",
-                tooltip="Clip in playback order. Connect a Load Video output.",
+                tooltip=(
+                    "Clip in playback order. Connect any VIDEO output — "
+                    "Load Video or a clip generated earlier in the workflow."
+                ),
             ),
             prefix="segment",
             min=2,

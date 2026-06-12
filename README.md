@@ -41,10 +41,19 @@ Load Video (clip C) ──► segment2 ──┘    (slots grow as you connect)
 4. Queue the workflow. The result saves under `output/` with **filename_prefix**
    and previews on the node.
 
+## Pipelines
+
+Segments accept any **VIDEO** output, not just **Load Video**. Clips generated
+earlier in the same workflow (e.g. by a video model) can be wired straight into
+the sequencer — ComfyUI runs the sequencer only after every connected clip has
+finished rendering. In-memory clips are encoded once to a temp H.264 MP4 before
+joining.
+
 ## Limitations
 
-- Inputs must be MP4 files on disk, loaded with **Load Video**.
-- **cut** mode requires compatible codec/container settings across clips.
+- **cut** mode is lossless only for file-backed MP4 clips with compatible
+  codec/container settings; in-memory or non-MP4 clips are re-encoded to
+  temp files first.
 - **dissolve** re-encodes; output duration shrinks by the overlap of each crossfade.
 - Clips without audio produce a video-only result in dissolve mode.
 
