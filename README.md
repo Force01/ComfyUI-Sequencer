@@ -73,6 +73,30 @@ the sequencer — ComfyUI runs the sequencer only after every connected clip has
 finished rendering. In-memory clips are encoded once to a temp H.264 MP4 before
 joining.
 
+## Spill Clip to Disk
+
+For long workflows that generate many clips in sequence, holding all of them
+in memory simultaneously can exhaust RAM before the sequencer runs.
+
+**Spill Clip to Disk** solves this. Place it between each clip generator and
+the sequencer:
+
+```text
+Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment0 ──┐
+Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment1 ──┴──► Video Sequencer
+```
+
+Each clip is immediately encoded to a temp H.264 MP4 and the in-memory tensors
+are released, so only one clip's worth of data is in RAM at a time. The
+sequencer then reads the clips back from disk when it runs.
+
+**The temp files are not saved to your output folder.** They live in ComfyUI's
+temp directory and are cleared with normal temp cleanup — they are not meant as
+a permanent archive of individual clips.
+
+If you want to keep the individual clips as named files, use **Save Video**
+instead. Spill Clip to Disk is a memory pressure valve, not a save node.
+
 ## Mixed resolutions and frame rates
 
 Clips are conformed to the **first clip's** size and frame rate, like dropping
