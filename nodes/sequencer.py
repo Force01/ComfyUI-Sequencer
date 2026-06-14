@@ -21,8 +21,7 @@ class VideoSequencer(io.ComfyNode):
 
     @classmethod
     def define_schema(cls) -> io.Schema:
-        # Autogrow: segment0/segment1/... slots that grow as clips are connected.
-        segments_template = io.Autogrow.TemplatePrefix(
+        segments_template = io.Autogrow.TemplateNames(
             io.Video.Input(
                 "segment",
                 tooltip=(
@@ -30,9 +29,8 @@ class VideoSequencer(io.ComfyNode):
                     "Load Video or a clip generated earlier in the workflow."
                 ),
             ),
-            prefix="segment",
+            names=[f"segment{i:02d}" for i in range(_MAX_SEGMENTS)],
             min=2,
-            max=_MAX_SEGMENTS,
         )
         return io.Schema(
             node_id="VideoSequencer",
@@ -47,17 +45,8 @@ class VideoSequencer(io.ComfyNode):
                 "dissolves, fades, wipes, and slides re-encode."
             ),
             search_aliases=[
-                "sequence",
-                "concat",
-                "stitch",
-                "join",
-                "merge clips",
-                "dissolve",
-                "fade",
-                "xfade",
-                "video segments",
-                "split renders",
-                "stream copy",
+                "sequence", "concat", "stitch", "join", "merge clips",
+                "dissolve", "fade", "xfade", "video segments", "stream copy",
             ],
             inputs=[
                 io.Autogrow.Input(
@@ -76,9 +65,7 @@ class VideoSequencer(io.ComfyNode):
                     tooltip=(
                         "Transition used at every junction between clips. "
                         "cut: hard cuts, instant and lossless (no re-encode). "
-                        "All others re-encode to H.264. For different "
-                        "transitions at different junctions, chain Video "
-                        "Sequencer nodes."
+                        "All others re-encode to H.264."
                     ),
                 ),
                 io.Float.Input(
@@ -123,8 +110,7 @@ class VideoSequencer(io.ComfyNode):
         full_output_folder, filename, counter, subfolder, _prefix = folder_paths.get_save_image_path(
             filename_prefix,
             folder_paths.get_output_directory(),
-            512,
-            512,
+            512, 512,
         )
         out_name = f"{filename}_{counter:05}_.mp4"
         out_path = os.path.join(full_output_folder, out_name)
@@ -146,7 +132,8 @@ class VideoSequencer(io.ComfyNode):
 class SequencerExtension(ComfyExtension):
     @override
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [VideoSequencer]
+        from .spill import SpillClipToDisk
+        return [VideoSequencer, SpillClipToDisk]
 
 
 async def comfy_entrypoint() -> SequencerExtension:
