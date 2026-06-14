@@ -87,8 +87,10 @@ Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment
 ```
 
 Each clip is immediately encoded to a temp H.264 MP4 and the in-memory tensors
-are released, so only one clip's worth of data is in RAM at a time. The
-sequencer then reads the clips back from disk when it runs.
+are released. A forced garbage collection runs after each write so Python's
+cycle collector frees the upstream video object immediately rather than letting
+it accumulate across clips. The sequencer then reads the clips back from disk
+when it runs.
 
 **The temp files are not saved to your output folder.** They live in ComfyUI's
 temp directory and are cleared with normal temp cleanup — they are not meant as
