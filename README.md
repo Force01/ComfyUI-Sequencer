@@ -1,135 +1,210 @@
 # ComfyUI-Sequencer
 
-**Video Sequencer** joins video clips end-to-end into one continuous video —
-**instantly, losslessly, and with zero VRAM** in cut mode. Clips come from
-loaded MP4 files or straight from video models earlier in the same workflow;
-clips never need to fit in memory.
+Video Sequencer joins video clips end-to-end into one continuous video inside ComfyUI. It can join loaded MP4 files or clips generated earlier in the same workflow.
 
-Connect clips in playback order — a new segment slot appears each time you
-connect one (up to 20). Pick a transition for the junctions and queue the
-workflow. Find it under **video/edit**.
+In `cut` mode, compatible file-backed clips are joined instantly and losslessly using FFmpeg stream copy. For generated clips or long workflows, use **Spill Clip to Disk** to write clips to temporary files before sequencing.
+
+Connect clips in playback order. A new segment slot appears each time you connect one, up to 20 segments. Pick a transition, queue the workflow, and the sequencer outputs a single video.
+
+Find it under:
+
+```text
+video/edit
+```
+
+---
+
+## Features
+
+- Join up to 20 video clips
+- Hard cut mode with lossless FFmpeg stream copy when clips are compatible
+- Transition modes with automatic re-encode
+- Audio handling for clips with or without audio
+- Automatic conforming for mixed resolutions and frame rates
+- Accepts loaded videos or generated `VIDEO` outputs
+- Optional spill-to-disk node for long workflows
+- No GPU required for sequencing
+
+---
 
 ## Transitions
 
-The **transition** dropdown applies one transition style at every junction:
+The transition dropdown applies one transition style at every junction.
 
-- **cut** — hard cuts. FFmpeg concat demuxer, no re-encode — instant and
-  lossless. Clips must share codec/container settings.
-- **dissolve** — classic crossfade between clips.
-- **fade to black** / **fade to white** — fade out through black/white, then in.
-- **wipe left / right / up / down** — the next clip wipes across the frame.
-- **slide left / right / up / down** — the next clip pushes the previous one out.
-- **circle open** / **circle close** — iris in or out.
-- **pixelate** — pixelated dissolve.
+| Transition | Description |
+|---|---|
+| `cut` | Hard cut. Uses FFmpeg concat demuxer when clips are compatible. No re-encode. Fast and lossless. |
+| `dissolve` | Classic crossfade between clips. |
+| `fade to black` | Fade out through black, then fade in. |
+| `fade to white` | Fade out through white, then fade in. |
+| `wipe left` / `right` / `up` / `down` | The next clip wipes across the frame. |
+| `slide left` / `right` / `up` / `down` | The next clip pushes the previous clip out. |
+| `circle open` / `circle close` | Iris-style transition. |
+| `pixelate` | Pixelated dissolve transition. |
 
-Everything except **cut** re-encodes to H.264 and lasts **transition seconds**
-(audio crossfades to AAC when every clip has audio).
+Everything except `cut` re-encodes to H.264. Transition duration is controlled by the `transition_seconds` setting.
 
-### Mixing transitions
+When every clip has audio, transition modes crossfade audio to AAC.
 
-Chain sequencers: the node's output is a VIDEO, so wire one sequencer's result
-into another's `segment0`. Example — dissolve A→B, hard cut to C:
+---
+
+## Mixing transitions
+
+To use different transitions between different clips, chain sequencers together.
+
+Example: dissolve A → B, then hard cut to C.
 
 ```text
 A ──► segment0 ─┐
-B ──► segment1 ─┴─► Sequencer (dissolve) ──► segment0 ─┐
-C ─────────────────────────────────────────► segment1 ─┴─► Sequencer (cut) ──► video
+B ──► segment1 ─┴─► Video Sequencer (dissolve) ──► segment0 ─┐
+C ───────────────────────────────────────────────► segment1 ─┴─► Video Sequencer (cut) ──► video
 ```
+
+The sequencer output is a `VIDEO`, so it can be wired into another sequencer.
+
+---
 
 ## Requirements
 
-- ComfyUI **0.24+** (V3 custom node API)
-- **FFmpeg** and **FFprobe** on `PATH`
-- **No CUDA or GPU required** — sequencing and spill-to-disk are CPU/file utilities
-- **No model loading** — this package does not load GGUF, text encoders, or other AI models
+- ComfyUI 0.24+
+- FFmpeg and FFprobe available on PATH
+- Python environment used by ComfyUI
+
+No GPU is required for sequencing.
+
+---
 
 ## Install
 
-Copy or clone this folder into your ComfyUI `custom_nodes` directory:
+Clone or copy this repo into your ComfyUI `custom_nodes` directory:
 
 ```text
-custom_nodes/ComfyUI-Sequencer/
+ComfyUI/custom_nodes/ComfyUI-Sequencer/
 ```
 
-Restart ComfyUI. The node appears under **video/edit** as **Video Sequencer**.
+Restart ComfyUI.
 
-## Use
+The node appears under:
+
+```text
+video/edit
+```
+
+as:
+
+```text
+Video Sequencer
+```
+
+---
+
+## Basic use
 
 ```text
 Load Video (clip A) ──► segment0 ──┐
 Load Video (clip B) ──► segment1 ──┼──► Video Sequencer ──► video
-Load Video (clip C) ──► segment2 ──┘    (slots grow as you connect)
+Load Video (clip C) ──► segment2 ──┘
 ```
 
-1. Add a **Load Video** node for each MP4 clip (from `output/` or `input/`).
-2. Add **Video Sequencer** and connect each clip in playback order.
-3. Set **join_mode** to `cut` or `dissolve` (and **dissolve seconds** for fade length).
-4. Queue the workflow. The result saves under `output/` with **filename_prefix**
-   and previews on the node.
+Steps:
 
-## Pipelines
+1. Add one `Load Video` node for each clip.
+2. Add `Video Sequencer`.
+3. Connect each clip in playback order.
+4. Choose a transition mode.
+5. Set `transition_seconds` if using transitions.
+6. Queue the workflow.
 
-Segments accept any **VIDEO** output, not just **Load Video**. Clips generated
-earlier in the same workflow (e.g. by a video model) can be wired straight into
-the sequencer — ComfyUI runs the sequencer only after every connected clip has
-finished rendering. In-memory clips are encoded once to a temp H.264 MP4 before
-joining.
+The result is saved under ComfyUI's output folder using the selected `filename_prefix`.
+
+---
+
+## Generated video workflows
+
+Segments accept any ComfyUI `VIDEO` output.
+
+That means clips generated earlier in the same workflow can be wired directly into the sequencer.
+
+```text
+Video Model ──► CreateVideo ──► segment0 ──┐
+Video Model ──► CreateVideo ──► segment1 ──┼──► Video Sequencer ──► video
+Video Model ──► CreateVideo ──► segment2 ──┘
+```
+
+ComfyUI runs the sequencer after all connected clips have finished rendering.
+
+Generated clips are encoded to temporary H.264 MP4 files before joining.
+
+---
 
 ## Spill Clip to Disk
 
-For long workflows that generate many clips in sequence, holding all of them
-in memory simultaneously can exhaust RAM before the sequencer runs.
+Long workflows can hold many generated clips in memory before the final sequencer node runs.
 
-**Spill Clip to Disk** solves this. Place it between each clip generator and
-the sequencer:
+**Spill Clip to Disk** writes each clip to a temporary MP4 as soon as it is generated, then releases the in-memory clip data.
+
+Use it between a clip generator and the sequencer:
 
 ```text
 Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment0 ──┐
 Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment1 ──┴──► Video Sequencer
 ```
 
-Each clip is immediately encoded to a temp H.264 MP4 and the in-memory tensors
-are released. Optional garbage collection and CUDA cache cleanup run after each
-write when a GPU is available. The sequencer then reads the clips back from disk
-when it runs.
+This helps reduce RAM pressure in longer workflows.
 
-**The temp files are not saved to your output folder.** They live in ComfyUI's
-temp directory and are cleared with normal temp cleanup — they are not meant as
-a permanent archive of individual clips.
+The temporary files are stored in ComfyUI's temp directory. They are not permanent saved outputs.
 
-If you want to keep the individual clips as named files, use **Save Video**
-instead. Spill Clip to Disk is a memory pressure valve, not a save node.
+To keep individual clips as named files, use `Save Video` instead.
+
+---
 
 ## Mixed resolutions and frame rates
 
-Clips are conformed to the **first clip's** size and frame rate, like dropping
-clips into an editing timeline — smaller or differently-shaped clips are scaled
-and letterboxed. When clips already match (and **cut** is selected), the
-sequencer stream-copies instead: instant and lossless.
+The sequencer conforms clips to the first clip's size and frame rate.
+
+Differently sized clips are scaled and letterboxed, similar to dropping clips into an editing timeline.
+
+When clips already match and `cut` mode is selected, the sequencer can stream-copy instead of re-encoding.
+
+---
+
+## Audio behavior
+
+Audio is preserved when possible.
+
+| Clip audio state | Result |
+|---|---|
+| All clips have audio | Audio is joined or crossfaded depending on transition mode |
+| Some clips have audio | Silence is added under silent clips |
+| No clips have audio | Output is video-only |
+
+Transition modes output AAC audio when audio is present.
+
+---
 
 ## Limitations
 
-- **cut** mode is lossless only when all clips are file-backed MP4s sharing
-  size, frame rate, and codec settings; otherwise the sequence is conformed
-  and re-encoded automatically.
-- Transitions re-encode; output duration shrinks by the overlap of each crossfade.
-- When some clips have audio and others don't, silence is laid under the
-  silent clips (video-only output only when no clip has audio).
+- `cut` mode is lossless only when clips are compatible for FFmpeg stream copy.
+- If clips differ in size, frame rate, codec, or container settings, the sequence is conformed and re-encoded.
+- Transitions require re-encoding.
+- Transition output duration shrinks by the overlap amount.
+- Spill Clip to Disk writes temporary files, not permanent clip exports.
 
-## Out of scope
+---
 
-This repository is intentionally limited to **video sequencing** in ComfyUI:
+## Development
 
-- FFmpeg-based clip joining and transitions
-- Audio handling during joins
-- Temporary spill-to-disk for memory relief
-- ComfyUI node registration
+Run checks:
 
-It does **not** include GGUF support, text-encoder path patching, CUDA-specific
-requirements, voice systems, LTX/WAN internals, or other unrelated AI pipeline
-logic.
+```bash
+python -m compileall .
+python -m pytest -v
+```
 
-## Support scope
+FFmpeg-based tests run when FFmpeg is available and skip gracefully when it is not.
 
-This node does not know or care what produced the MP4 files. It only joins
-compatible MP4 clips in the order you wire them.
+---
+
+## License
+
+MIT
