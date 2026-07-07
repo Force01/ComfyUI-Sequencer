@@ -6,9 +6,9 @@ requires-python = ">=3.10"
 license = { file = "LICENSE" }
 
 [project.urls]
-Repository = "https://github.com/fundy/ComfyUI-Sequencer"
-"Bug Tracker" = "https://github.com/fundy/ComfyUI-Sequencer/issues"
-Documentation = "https://github.com/fundy/ComfyUI-Sequencer#readme"
+Repository = "https://github.com/Force01/ComfyUI-Sequencer"
+"Bug Tracker" = "https://github.com/Force01/ComfyUI-Sequencer/issues"
+Documentation = "https://github.com/Force01/ComfyUI-Sequencer#readme"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
@@ -17,6 +17,6 @@ dev = ["pytest>=8.0"]
 testpaths = ["tests"]
 
 [tool.comfy]
-PublisherId = "fundy"
+PublisherId = "force01"
 DisplayName = "Video Sequencer"
 requires-comfyui = ">=0.24.0"

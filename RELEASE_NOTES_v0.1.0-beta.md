@@ -29,5 +29,5 @@ Initial public beta of **ComfyUI-Sequencer**.
 Clone or copy into `ComfyUI/custom_nodes/ComfyUI-Sequencer/` and restart ComfyUI.
 
 ```bash
-git clone https://github.com/fundy/ComfyUI-Sequencer.git ComfyUI/custom_nodes/ComfyUI-Sequencer
+git clone https://github.com/Force01/ComfyUI-Sequencer.git ComfyUI/custom_nodes/ComfyUI-Sequencer
 ```
