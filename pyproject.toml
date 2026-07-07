@@ -5,6 +5,18 @@ description = "Join video clips end-to-end — instant, lossless, zero VRAM. Edi
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 
+[project.urls]
+Repository = "https://github.com/fundy/ComfyUI-Sequencer"
+"Bug Tracker" = "https://github.com/fundy/ComfyUI-Sequencer/issues"
+Documentation = "https://github.com/fundy/ComfyUI-Sequencer#readme"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.comfy]
 PublisherId = "fundy"
 DisplayName = "Video Sequencer"
+requires-comfyui = ">=0.24.0"

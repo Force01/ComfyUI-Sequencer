@@ -13,9 +13,11 @@ per-clip RAM roughly constant regardless of how many clips are in the sequence.
 
 from __future__ import annotations
 
+import gc
 import os
 import uuid
 
+import torch
 import folder_paths
 from comfy_api.latest import InputImpl, VideoCodec, VideoContainer, io
 
@@ -50,4 +52,17 @@ class SpillClipToDisk(io.ComfyNode):
         os.makedirs(temp_dir, exist_ok=True)
         path = os.path.join(temp_dir, f"spill_{uuid.uuid4().hex}.mp4")
         video.save_to(path, format=VideoContainer.MP4, codec=VideoCodec.H264)
+        del video
+        _release_clip_memory()
         return io.NodeOutput(InputImpl.VideoFromFile(path))
+
+
+def _release_clip_memory() -> None:
+    """Release Python and optional CUDA memory after spilling a clip to disk."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        try:
+            torch.cuda.ipc_collect()
+        except Exception:
+            pass

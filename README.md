@@ -38,8 +38,10 @@ C ──────────────────────────
 
 ## Requirements
 
-- ComfyUI 0.24+ (V3 custom node API)
-- FFmpeg and FFprobe on `PATH`
+- ComfyUI **0.24+** (V3 custom node API)
+- **FFmpeg** and **FFprobe** on `PATH`
+- **No CUDA or GPU required** — sequencing and spill-to-disk are CPU/file utilities
+- **No model loading** — this package does not load GGUF, text encoders, or other AI models
 
 ## Install
 
@@ -87,9 +89,8 @@ Video Model ──► CreateVideo ──► Spill Clip to Disk ──► segment
 ```
 
 Each clip is immediately encoded to a temp H.264 MP4 and the in-memory tensors
-are released. A forced garbage collection runs after each write so Python's
-cycle collector frees the upstream video object immediately rather than letting
-it accumulate across clips. The sequencer then reads the clips back from disk
+are released. Optional garbage collection and CUDA cache cleanup run after each
+write when a GPU is available. The sequencer then reads the clips back from disk
 when it runs.
 
 **The temp files are not saved to your output folder.** They live in ComfyUI's
@@ -114,6 +115,19 @@ sequencer stream-copies instead: instant and lossless.
 - Transitions re-encode; output duration shrinks by the overlap of each crossfade.
 - When some clips have audio and others don't, silence is laid under the
   silent clips (video-only output only when no clip has audio).
+
+## Out of scope
+
+This repository is intentionally limited to **video sequencing** in ComfyUI:
+
+- FFmpeg-based clip joining and transitions
+- Audio handling during joins
+- Temporary spill-to-disk for memory relief
+- ComfyUI node registration
+
+It does **not** include GGUF support, text-encoder path patching, CUDA-specific
+requirements, voice systems, LTX/WAN internals, or other unrelated AI pipeline
+logic.
 
 ## Support scope
 

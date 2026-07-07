@@ -1,11 +1,12 @@
-__pycache__/
-*.pyc
+.git/
+.github/
+tests/
+pytest.ini
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-dist/
-build/
-*.egg-info/
+__pycache__/
+*.pyc
 output/
 temp/
 tmp/
@@ -16,4 +17,3 @@ tmp/
 *.wav
 *.aac
 *.log
-.DS_Store
