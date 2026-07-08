@@ -28,7 +28,7 @@ class SpillClipToDisk(io.ComfyNode):
     @classmethod
     def define_schema(cls) -> io.Schema:
         return io.Schema(
-            node_id="SpillClipToDisk",
+            node_id="Sequencer_SpillClipToDisk",
             display_name="Spill Clip to Disk",
             category="video/memory",
             description=(

@@ -33,7 +33,7 @@ class VideoSequencer(io.ComfyNode):
             min=2,
         )
         return io.Schema(
-            node_id="VideoSequencer",
+            node_id="Sequencer_VideoSequencer",
             display_name="Video Sequencer",
             category="video/edit",
             description=(

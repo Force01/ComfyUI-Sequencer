@@ -26,14 +26,14 @@ def test_sequencer_node_mapping_loads():
     from comfyui_sequencer.nodes.sequencer import VideoSequencer, comfy_entrypoint
 
     schema = VideoSequencer.define_schema()
-    assert schema.kwargs["node_id"] == "VideoSequencer"
+    assert schema.kwargs["node_id"] == "Sequencer_VideoSequencer"
     assert schema.kwargs["category"] == "video/edit"
     assert "cut" in TRANSITION_NAMES
 
     extension = asyncio.run(comfy_entrypoint())
     nodes = asyncio.run(extension.get_node_list())
     node_ids = {node.define_schema().kwargs["node_id"] for node in nodes}
-    assert node_ids == {"VideoSequencer", "SpillClipToDisk"}
+    assert node_ids == {"Sequencer_VideoSequencer", "Sequencer_SpillClipToDisk"}
 
 
 def test_reimport_is_idempotent():
