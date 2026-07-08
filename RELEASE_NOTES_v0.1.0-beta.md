@@ -20,9 +20,21 @@ Initial public beta of **ComfyUI-Sequencer**.
 
 ## Known limitations
 
-- Full end-to-end workflow execution in ComfyUI should be validated manually after install
 - Comfy Registry validation not yet completed
 - Example workflow JSON may be added after beta if not included in this release
+
+## Manual validation
+
+Full end-to-end workflow execution has been validated in a live ComfyUI instance (2026-07-08):
+
+- Load Video -> Video Sequencer (`dissolve`) -> Save Video
+- Load Video -> Video Sequencer (`cut`) -> Save Video
+- Chained sequencers: Video Sequencer -> Spill Clip to Disk -> Video Sequencer -> Save Video, mixing loaded clips and a prior sequencer's output
+
+That chained-sequencer testing surfaced and fixed two real bugs:
+
+- `cut` mode's compatibility check only compared resolution, frame rate, and audio presence, so clips with matching geometry but different codec profile could pass as "compatible" and produce a corrupted stream-copy (correct duration/audio, frozen video). The check now also compares codec, profile, and pixel format.
+- The crossfade (`xfade`) path could emit non-monotonic timestamps for the tail of the second clip whenever the first clip was longer, which some muxers silently dropped — truncating the output right after the transition. Fixed by re-stamping to a constant frame rate immediately after each `xfade`.
 
 ## Install
 

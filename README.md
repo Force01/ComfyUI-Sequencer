@@ -76,15 +76,45 @@ No GPU is required for sequencing.
 
 ## Install
 
-Clone or copy this repo into your ComfyUI `custom_nodes` directory:
+### Option A: ComfyUI Manager
+
+Search for **ComfyUI-Sequencer** in ComfyUI Manager and install it. This pulls only the files needed to run the nodes.
+
+### Option B: Manual clone
+
+From your ComfyUI `custom_nodes` directory:
+
+```bash
+git clone https://github.com/Force01/ComfyUI-Sequencer.git
+```
+
+This results in:
 
 ```text
 ComfyUI/custom_nodes/ComfyUI-Sequencer/
 ```
 
-Restart ComfyUI.
+A manual clone also brings along development files (`tests/`, CI config, etc.). These aren't used at runtime and are safe to leave in place or delete.
 
-The node appears under:
+No `pip install` step is required — the nodes use only packages already bundled with ComfyUI.
+
+### FFmpeg
+
+FFmpeg and FFprobe must be on your system PATH. Check with:
+
+```bash
+ffmpeg -version
+```
+
+If that fails, install FFmpeg first:
+
+- **Windows**: `winget install ffmpeg` (or download from [ffmpeg.org](https://ffmpeg.org/download.html) and add it to PATH)
+- **macOS**: `brew install ffmpeg`
+- **Linux**: `apt install ffmpeg` (or your distro's package manager)
+
+### Finish
+
+Restart ComfyUI. The node appears under:
 
 ```text
 video/edit

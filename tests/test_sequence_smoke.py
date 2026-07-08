@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from comfyui_sequencer.lib.sequence import (
+    _clips_uniform,
     probe_has_audio,
     sequence_videos,
     sequence_videos_cut,
@@ -32,6 +33,7 @@ def _make_clip(
     fps: int = 24,
     duration: float = 1.0,
     with_audio: bool = False,
+    profile: str = "high",
 ) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -56,6 +58,8 @@ def _make_clip(
     cmd += [
         "-c:v",
         "libx264",
+        "-profile:v",
+        profile,
         "-pix_fmt",
         "yuv420p",
         "-t",
@@ -81,6 +85,32 @@ def test_sequence_cut_same_size_clips(tmp_path):
 def test_transition_falls_back_when_clips_differ(tmp_path):
     clip_a = _make_clip(tmp_path / "a.mp4", width=320, height=240)
     clip_b = _make_clip(tmp_path / "b.mp4", width=640, height=480)
+    out = tmp_path / "joined.mp4"
+    transitions = build_transitions(1, "cut", 0.5)
+
+    result = sequence_videos(
+        [clip_a, clip_b],
+        str(out),
+        join_mode="stream_copy",
+        transitions=transitions,
+    )
+    assert Path(result).is_file()
+    assert Path(result).stat().st_size > 0
+
+
+def test_uniform_check_catches_profile_mismatch(tmp_path):
+    # Same resolution/fps/audio but different H.264 profile: a real-world
+    # case where stream-copy concat would produce a container with correct
+    # duration/audio but a broken/frozen video track. The uniformity check
+    # must catch this even though width/height/fps/audio all match.
+    clip_a = _make_clip(tmp_path / "a.mp4", profile="baseline")
+    clip_b = _make_clip(tmp_path / "b.mp4", profile="high")
+    assert not _clips_uniform([str(clip_a), str(clip_b)])
+
+
+def test_sequence_falls_back_to_reencode_on_profile_mismatch(tmp_path):
+    clip_a = _make_clip(tmp_path / "a.mp4", profile="baseline")
+    clip_b = _make_clip(tmp_path / "b.mp4", profile="high")
     out = tmp_path / "joined.mp4"
     transitions = build_transitions(1, "cut", 0.5)
 

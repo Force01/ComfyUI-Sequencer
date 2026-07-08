@@ -53,8 +53,9 @@ def probe_has_audio(path: str, *, timeout: int = 30) -> bool:
     return result.returncode == 0 and bool(result.stdout.strip())
 
 
-def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str]:
-    """Return (width, height, avg_frame_rate) of the first video stream."""
+def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str, str, str, str]:
+    """Return (width, height, avg_frame_rate, codec_name, profile, pix_fmt) of
+    the first video stream."""
     ffprobe = require_ffprobe()
     result = subprocess.run(
         [
@@ -64,9 +65,9 @@ def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str]:
             "-select_streams",
             "v:0",
             "-show_entries",
-            "stream=width,height,avg_frame_rate",
+            "stream=width,height,avg_frame_rate,codec_name,profile,pix_fmt",
             "-of",
-            "csv=p=0",
+            "default=noprint_wrappers=1",
             path,
         ],
         capture_output=True,
@@ -75,13 +76,28 @@ def probe_video_params(path: str, *, timeout: int = 30) -> tuple[int, int, str]:
     )
     if result.returncode != 0 or not result.stdout.strip():
         raise RuntimeError(f"Cannot read video parameters for {path!r}")
-    width, height, frame_rate = result.stdout.strip().split(",")[:3]
-    return int(width), int(height), frame_rate
+    fields = dict(
+        line.split("=", 1) for line in result.stdout.strip().splitlines() if "=" in line
+    )
+    try:
+        return (
+            int(fields["width"]),
+            int(fields["height"]),
+            fields["avg_frame_rate"],
+            fields["codec_name"],
+            fields.get("profile", "unknown"),
+            fields["pix_fmt"],
+        )
+    except KeyError as exc:
+        raise RuntimeError(f"Cannot read video parameters for {path!r}") from exc
 
 
 def _clips_uniform(segment_paths: list[str]) -> bool:
-    """True when every clip shares the first clip's size, frame rate, and
-    audio presence (mixed audio breaks stream-copy concat)."""
+    """True when every clip shares the first clip's size, frame rate, codec,
+    profile, pixel format, and audio presence. Stream-copy concat requires
+    matching encode parameters, not just matching resolution/fps — clips that
+    only look alike can concat into a container with correct duration/audio
+    but broken video decode (frozen frame)."""
     params = [
         (*probe_video_params(path), probe_has_audio(path)) for path in segment_paths
     ]
@@ -183,7 +199,7 @@ def sequence_videos_fade(
     # Conform every clip to the first clip's size and frame rate (scale +
     # letterbox), like dropping clips into an editing timeline. xfade and
     # concat require identical geometry across inputs.
-    width, height, frame_rate = probe_video_params(segment_paths[0])
+    width, height, frame_rate, *_ = probe_video_params(segment_paths[0])
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -247,7 +263,15 @@ def sequence_videos_fade(
 
         video_filters.append(
             f"[{v_label}][cv{next_idx:02d}]"
-            f"xfade=transition={xfade_name}:duration={trans_dur:.3f}:offset={offset:.3f}"
+            f"xfade=transition={xfade_name}:duration={trans_dur:.3f}:offset={offset:.3f},"
+            # xfade can hand back non-monotonic pts for frames after the
+            # transition point (it passes through the second input's own
+            # original pts instead of continuing the output timeline), which
+            # some muxers silently drop rather than error on — truncating the
+            # output right after the crossfade. fps= re-stamps to a strict
+            # CFR (and gives a chained xfade valid frame-rate metadata to
+            # read); setpts then guarantees the result is strictly monotonic.
+            f"setpts=N/({frame_rate}*TB),fps={frame_rate}"
             f"[{v_out}]"
         )
         if with_audio:
