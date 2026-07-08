@@ -1,6 +1,6 @@
 [project]
 name = "ComfyUI-Sequencer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Join video clips end-to-end — instant, lossless, zero VRAM. Editor-style transitions: cut, dissolve, fades, wipes, slides. Works with loaded files or clips generated in-workflow."
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -19,4 +19,5 @@ testpaths = ["tests"]
 [tool.comfy]
 PublisherId = "force01"
 DisplayName = "Video Sequencer"
+Icon = "https://raw.githubusercontent.com/Force01/ComfyUI-Sequencer/main/assets/icon.png"
 requires-comfyui = ">=0.24.0"
