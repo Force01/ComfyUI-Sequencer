@@ -22,6 +22,8 @@ XFADE_NAMES = {
     "circle open": "circleopen",
     "circle close": "circleclose",
     "pixelate": "pixelize",
+    "zoom in": "zoomin",
+    "blur": "hblur",
 }
 
 TRANSITION_NAMES = ["cut", *XFADE_NAMES]
