@@ -207,6 +207,23 @@ Transition modes output AAC audio when audio is present.
 
 ---
 
+## Performance
+
+Everything runs as a single FFmpeg pass — no chunking, no per-clip encoding.
+
+Tested with two real 5-minute 720p clips (10 minutes total output):
+
+| Mode | Time |
+|---|---|
+| `cut` | 0.8s — pure stream copy, no re-encode |
+| `dissolve` | 82s — single-pass re-encode, ~7x faster than real-time |
+
+`cut` mode scales with file size, not clip length — a 5-minute and a 50-minute clip cost about the same per byte. Transition modes scale like any normal single-pass H.264 encode.
+
+There's a subprocess timeout (300s for `cut`, 600s for transitions) as a safety ceiling. `cut` mode won't come close to it. Transition mode could in principle on very long or high-resolution sequences, but the tested numbers above show plenty of headroom for typical clip lengths.
+
+---
+
 ## Limitations
 
 - `cut` mode is lossless only when clips are compatible for FFmpeg stream copy.
