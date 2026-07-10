@@ -43,6 +43,8 @@ The transition dropdown applies one transition style at every junction.
 | `slide left` / `right` / `up` / `down` | The next clip pushes the previous clip out. |
 | `circle open` / `circle close` | Iris-style transition. |
 | `pixelate` | Pixelated dissolve transition. |
+| `zoom in` | The next clip zooms in from the center. |
+| `blur` | Horizontal blur crossfade between clips. |
 
 Everything except `cut` re-encodes to H.264. Transition duration is controlled by the `transition_seconds` setting.
 
