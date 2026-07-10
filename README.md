@@ -170,6 +170,12 @@ Long workflows can hold many generated clips in memory before the final sequence
 
 **Spill Clip to Disk** writes each clip to a temporary MP4 as soon as it is generated, then releases the in-memory clip data.
 
+Find it under:
+
+```text
+video/memory
+```
+
 Use it between a clip generator and the sequencer:
 
 ```text
