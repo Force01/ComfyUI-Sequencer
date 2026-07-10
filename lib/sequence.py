@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 import subprocess
 from pathlib import Path
@@ -325,12 +326,13 @@ def sequence_videos(
     transitions: list[dict],
     timeout: int = 600,
 ) -> str:
-    """Dispatch to stream-copy or crossfade sequencing."""
+    """Dispatch to stream-copy, smart-render, or crossfade sequencing."""
     if join_mode not in ("stream_copy", "fade"):
         raise ValueError(f"Unknown join_mode: {join_mode!r}")
 
     all_cuts = join_mode == "stream_copy" or uses_stream_copy(transitions)
-    if all_cuts and len(segment_paths) > 1 and not _clips_uniform(segment_paths):
+    uniform = len(segment_paths) > 1 and _clips_uniform(segment_paths)
+    if all_cuts and len(segment_paths) > 1 and not uniform:
         # Mismatched size/frame rate: the concat demuxer would corrupt the
         # output, so conform + re-encode via the xfade path (cut transitions
         # there are 0.04 s, visually a hard cut).
@@ -338,4 +340,20 @@ def sequence_videos(
 
     if all_cuts:
         return sequence_videos_cut(segment_paths, output_path, timeout=min(timeout, 300))
+
+    if uniform:
+        # Transitions on uniform clips: re-encode only the overlap window
+        # around each junction and stream-copy the rest losslessly. Any
+        # unmet precondition falls through to the full re-encode below.
+        from .smart import SmartRenderUnavailable, sequence_videos_smart
+
+        try:
+            return sequence_videos_smart(
+                segment_paths, transitions, output_path, timeout=timeout
+            )
+        except SmartRenderUnavailable as exc:
+            logging.info("Smart render unavailable (%s); using full re-encode", exc)
+        except Exception:
+            logging.exception("Smart render failed; using full re-encode")
+
     return sequence_videos_fade(segment_paths, transitions, output_path, timeout=timeout)
