@@ -42,7 +42,8 @@ class VideoSequencer(io.ComfyNode):
                 "generated earlier in the workflow. A new segment slot appears "
                 "whenever you connect a clip (up to 20). Pick a transition for "
                 "the junctions: 'cut' joins instantly with no re-encode; "
-                "dissolves, fades, wipes, and slides re-encode."
+                "dissolves, fades, wipes, and slides re-encode only the "
+                "seconds around each junction when clips are compatible."
             ),
             search_aliases=[
                 "sequence", "concat", "stitch", "join", "merge clips",
@@ -65,7 +66,8 @@ class VideoSequencer(io.ComfyNode):
                     tooltip=(
                         "Transition used at every junction between clips. "
                         "cut: hard cuts, instant and lossless (no re-encode). "
-                        "All others re-encode to H.264."
+                        "Other transitions re-encode to H.264 — only around "
+                        "each junction when clips are compatible."
                     ),
                 ),
                 io.Float.Input(

@@ -20,7 +20,7 @@ video/edit
 
 - Join up to 20 video clips
 - Hard cut mode with lossless FFmpeg stream copy when clips are compatible
-- Transition modes with automatic re-encode
+- Smart render for transitions: only the seconds around each junction are re-encoded when clips are compatible; the rest is copied losslessly
 - Audio handling for clips with or without audio
 - Automatic conforming for mixed resolutions and frame rates
 - Accepts loaded videos or generated `VIDEO` outputs
@@ -46,7 +46,7 @@ The transition dropdown applies one transition style at every junction.
 | `zoom in` | The next clip zooms in from the center. |
 | `blur` | Horizontal blur crossfade between clips. |
 
-Everything except `cut` re-encodes to H.264. Transition duration is controlled by the `transition_seconds` setting.
+Everything except `cut` re-encodes to H.264 — but when clips are compatible, only the few seconds around each junction are re-encoded (smart render); the rest is copied losslessly. Transition duration is controlled by the `transition_seconds` setting.
 
 When every clip has audio, transition modes crossfade audio to AAC.
 
@@ -211,18 +211,21 @@ Transition modes output AAC audio when audio is present.
 
 ## Performance
 
-Everything runs as a single FFmpeg pass — no chunking, no per-clip encoding.
+`cut` mode stream-copies — no re-encode, near-instant at any length.
+
+Transitions use **smart render** when clips are compatible (same size, frame rate, codec, profile, pixel format): only a few seconds around each junction are re-encoded, and the rest of the footage is copied bit-for-bit — no generation loss, even when chaining sequencers. Incompatible clips fall back to a full re-encode.
 
 Tested with two real 5-minute 720p clips (10 minutes total output):
 
 | Mode | Time |
 |---|---|
-| `cut` | 0.8s — pure stream copy, no re-encode |
-| `dissolve` | 82s — single-pass re-encode, ~7x faster than real-time |
+| `cut` | 0.8s — pure stream copy |
+| `dissolve`, smart render | 37s — only ~15s around the junction re-encoded |
+| `dissolve`, full re-encode fallback | 82s — whole output re-encoded |
 
-`cut` mode scales with file size, not clip length — a 5-minute and a 50-minute clip cost about the same per byte. Transition modes scale like any normal single-pass H.264 encode.
+Smart render needs the incoming clip to have a keyframe shortly after the transition window. Short generated clips often have a single keyframe, so they use the fallback — at those lengths a full re-encode costs about a second anyway.
 
-There's a subprocess timeout (300s for `cut`, 600s for transitions) as a safety ceiling. `cut` mode won't come close to it. Transition mode could in principle on very long or high-resolution sequences, but the tested numbers above show plenty of headroom for typical clip lengths.
+There's a subprocess timeout (300s for `cut`, 600s for transitions) as a safety ceiling; the tested numbers above show plenty of headroom for typical clip lengths.
 
 ---
 
@@ -230,7 +233,7 @@ There's a subprocess timeout (300s for `cut`, 600s for transitions) as a safety 
 
 - `cut` mode is lossless only when clips are compatible for FFmpeg stream copy.
 - If clips differ in size, frame rate, codec, or container settings, the sequence is conformed and re-encoded.
-- Transitions require re-encoding.
+- Transitions re-encode at least the overlap window around each junction — the whole output when clips are not compatible for smart render.
 - Transition output duration shrinks by the overlap amount.
 - Spill Clip to Disk writes temporary files, not permanent clip exports.
 
