@@ -4,6 +4,8 @@ Built for chaining generated clips into a continuous sequence — the classic ca
 
 Video Sequencer joins video clips end-to-end into one continuous video inside ComfyUI. It can join loaded MP4 files or clips generated earlier in the same workflow.
 
+[![Watch the demo](https://img.youtube.com/vi/sRK8_-DOJeI/maxresdefault.jpg)](https://youtu.be/sRK8_-DOJeI)
+
 In `cut` mode, compatible file-backed clips are joined instantly and losslessly using FFmpeg stream copy. For generated clips or long workflows, use **Spill Clip to Disk** to write clips to temporary files before sequencing.
 
 Connect clips in playback order. A new segment slot appears each time you connect one, up to 20 segments. Pick a transition, queue the workflow, and the sequencer outputs a single video.
